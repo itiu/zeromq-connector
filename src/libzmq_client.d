@@ -112,7 +112,7 @@ class libzmq_client: mom_client
 	}
 
 }
-
+/*
 void main(char[][] args)
 {
 	Stdout.format("main#1").newline;
@@ -142,3 +142,4 @@ char* get_message(byte* message, ulong message_size, mom_client from_client)
 	Stdout.format("[{}] data: {}", count, fromStringz(cast(char*) message)).newline;
 	return "aaaaa test message";
 }
+*/
