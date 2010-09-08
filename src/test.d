@@ -34,9 +34,11 @@ void main(char[][] args)
 
 int count = 0;
 
-char* get_message(byte* message, ulong message_size, mom_client from_client)
+void get_message(byte* message, ulong message_size, mom_client from_client)
 {
 	count++;
 	Stdout.format("[{}] data: {}", count, fromStringz(cast(char*) message)).newline;
-	return "aaaaa test message";
+	
+	from_client.send ("", "test message");
+	return;
 }

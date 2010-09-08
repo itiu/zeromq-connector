@@ -14,8 +14,10 @@ class libzmq_client: mom_client
 	void* context = null;
 	//	void* soc_rep;
 	void* soc_rep;
+	
+	bool isSend = false;
 
-	char* function(byte* txt, ulong size, mom_client from_client) message_acceptor;
+	void function(byte* txt, ulong size, mom_client from_client) message_acceptor;
 
 	this(char* bind_to)
 	{
@@ -42,7 +44,7 @@ class libzmq_client: mom_client
 		Stdout.format("#~..").newline;
 	}
 
-	void set_callback(char* function(byte* txt, ulong size, mom_client from_client) _message_acceptor)
+	void set_callback(void function(byte* txt, ulong size, mom_client from_client) _message_acceptor)
 	{
 		message_acceptor = _message_acceptor;
 	}
@@ -50,7 +52,8 @@ class libzmq_client: mom_client
 	int send(char* routingkey, char* messagebody)
 	{
 		zmq_msg_t msg;
-		//		Stdout.format("#new .. res_req={}", res_rep).newline;
+		
+//		Stdout.format("#send").newline;
 		int message_size = strlen(messagebody);
 
 		int rc = zmq_msg_init_size(&msg, message_size);
@@ -68,6 +71,9 @@ class libzmq_client: mom_client
 			Stdout.format("(error in zmq_send: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
 			return -1;
 		}
+		isSend = true;
+		
+//		Stdout.format("#send is ok").newline;
 		return 0;
 	}
 
@@ -78,40 +84,61 @@ class libzmq_client: mom_client
 
 	void listener()
 	{
+		Stdout.format("start listener").newline;
+
 		while(true)
 		{
 			zmq_msg_t msg;
-			Stdout.format("start listener").newline;
 
-			int rc = zmq_msg_init_size(&msg, 30);
+//			Stdout.format("init message").newline;
+			int rc = zmq_msg_init(&msg);
 			if(rc != 0)
 			{
 				Stdout.format("error in zmq_msg_init_size: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
 				return;
 			}
 
-			Stdout.format("wait message").newline;
+//			Stdout.format("wait message").newline;
+			
+			if (isSend == false)
+			{
+				rc = zmq_msg_init_size(&msg, 1);
+				if(rc != 0)
+				{
+					Stdout.format("error in zmq_msg_init_size: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
+					return;
+				}
+
+				rc = zmq_send(soc_rep, &msg, 0);				
+			}
+			
 			rc = zmq_recv(soc_rep, &msg, 0);
 			if(rc != 0)
 			{
 				Stdout.format("error in zmq_recv: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
 				return;
-			} else
+			}
+			else
 			{
+				isSend = false;
+				
 				byte* data = cast(byte*) zmq_msg_data(&msg);
+				int len = strlen(cast(char*) data);
 				char* result = null;
 				try
 				{
-				message_acceptor(data, strlen(cast(char*) data), this);
-				}
-				catch (Exception ex)
+//					len -= 2;
+//					data[len] = 0;
+//					Stdout.format("call message acceptor").newline;
+					 message_acceptor(data, len, this);
+//					Stdout.format("ok").newline;
+				} catch(Exception ex)
 				{
-					
+//					Stdout.format("exception").newline;
+//					send("", "");
 				}
-			    send ("", result);
 			}
 		}
 	}
 
 }
-
