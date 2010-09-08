@@ -1,3 +1,5 @@
+module mom_client;
+
 interface mom_client
 {
 	// set callback function for listener ()

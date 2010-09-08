@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+module libzmq_headers;
 
 /******************************************************************************/
 /*  0MQ versioning support.                                                    */
