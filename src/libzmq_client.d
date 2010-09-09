@@ -21,11 +21,10 @@ class libzmq_client: mom_client
 
 	this(char* bind_to)
 	{
-		Stdout.format("#new #1").newline;
 		context = zmq_init(1);
 		soc_rep = zmq_socket(context, soc_type.ZMQ_REP);
 
-		Stdout.format("#2 listen: {}", fromStringz(bind_to)).newline;
+		Stdout.format("libzmq_client: listen: {}", fromStringz(bind_to)).newline;
 		int rc = zmq_bind(soc_rep, bind_to);
 		if(rc != 0)
 		{
@@ -37,11 +36,10 @@ class libzmq_client: mom_client
 
 	~this()
 	{
-		Stdout.format("#~").newline;
+		Stdout.format("libzmq_client:destroy").newline;
 		zmq_close(soc_rep);
 		//		zmq_close(soc_rep);
 		zmq_term(context);
-		Stdout.format("#~..").newline;
 	}
 
 	void set_callback(void function(byte* txt, ulong size, mom_client from_client) _message_acceptor)
@@ -132,8 +130,6 @@ class libzmq_client: mom_client
 				char* result = null;
 				try
 				{
-					//					len -= 2;
-					//					data[len] = 0;
 					//					Stdout.format("call message acceptor").newline;
 					message_acceptor(data, len, this);
 					//					Stdout.format("ok").newline;
