@@ -7,7 +7,7 @@ interface mom_client
 	void listener();
 	
 	// sends a message to the specified queue
-	int send(char* routingkey, char* messagebody);
+	int send(char* routingkey, char* messagebody, bool send_more);
 
 	// forward to receiving the message
 	char* get_message ();

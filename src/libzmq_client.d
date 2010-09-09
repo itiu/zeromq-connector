@@ -14,7 +14,7 @@ class libzmq_client: mom_client
 	void* context = null;
 	//	void* soc_rep;
 	void* soc_rep;
-	
+
 	bool isSend = false;
 
 	void function(byte* txt, ulong size, mom_client from_client) message_acceptor;
@@ -49,11 +49,11 @@ class libzmq_client: mom_client
 		message_acceptor = _message_acceptor;
 	}
 
-	int send(char* routingkey, char* messagebody)
+	int send(char* routingkey, char* messagebody, bool send_more)
 	{
 		zmq_msg_t msg;
-		
-//		Stdout.format("#send").newline;
+
+		//		Stdout.format("#send").newline;
 		int message_size = strlen(messagebody);
 
 		int rc = zmq_msg_init_size(&msg, message_size);
@@ -65,15 +65,20 @@ class libzmq_client: mom_client
 
 		memcpy(zmq_msg_data(&msg), messagebody, message_size);
 
-		rc = zmq_send(soc_rep, &msg, 0);
+		int send_param = 0;
+
+		if(send_more)
+			send_param = send_recv_opt.ZMQ_SNDMORE;
+
+		rc = zmq_send(soc_rep, &msg, send_param);
 		if(rc != 0)
 		{
 			Stdout.format("(error in zmq_send: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
 			return -1;
 		}
 		isSend = true;
-		
-//		Stdout.format("#send is ok").newline;
+
+		//		Stdout.format("#send is ok").newline;
 		return 0;
 	}
 
@@ -90,7 +95,7 @@ class libzmq_client: mom_client
 		{
 			zmq_msg_t msg;
 
-//			Stdout.format("init message").newline;
+			//			Stdout.format("init message").newline;
 			int rc = zmq_msg_init(&msg);
 			if(rc != 0)
 			{
@@ -98,9 +103,9 @@ class libzmq_client: mom_client
 				return;
 			}
 
-//			Stdout.format("wait message").newline;
-			
-			if (isSend == false)
+			//			Stdout.format("wait message").newline;
+
+			if(isSend == false)
 			{
 				rc = zmq_msg_init_size(&msg, 1);
 				if(rc != 0)
@@ -109,9 +114,9 @@ class libzmq_client: mom_client
 					return;
 				}
 
-				rc = zmq_send(soc_rep, &msg, 0);				
+				rc = zmq_send(soc_rep, &msg, 0);
 			}
-			
+
 			rc = zmq_recv(soc_rep, &msg, 0);
 			if(rc != 0)
 			{
@@ -121,21 +126,21 @@ class libzmq_client: mom_client
 			else
 			{
 				isSend = false;
-				
+
 				byte* data = cast(byte*) zmq_msg_data(&msg);
 				int len = strlen(cast(char*) data);
 				char* result = null;
 				try
 				{
-//					len -= 2;
-//					data[len] = 0;
-//					Stdout.format("call message acceptor").newline;
-					 message_acceptor(data, len, this);
-//					Stdout.format("ok").newline;
+					//					len -= 2;
+					//					data[len] = 0;
+					//					Stdout.format("call message acceptor").newline;
+					message_acceptor(data, len, this);
+					//					Stdout.format("ok").newline;
 				} catch(Exception ex)
 				{
-//					Stdout.format("exception").newline;
-//					send("", "");
+					//					Stdout.format("exception").newline;
+					//					send("", "");
 				}
 			}
 		}
