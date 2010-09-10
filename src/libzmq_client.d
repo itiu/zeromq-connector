@@ -71,7 +71,7 @@ class libzmq_client: mom_client
 		rc = zmq_send(soc_rep, &msg, send_param);
 		if(rc != 0)
 		{
-			Stdout.format("(error in zmq_send: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
+			Stdout.format("libzmq_client.send:zmq_send: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
 			return -1;
 		}
 		isSend = true;
@@ -130,7 +130,7 @@ class libzmq_client: mom_client
 				char* result = null;
 				try
 				{
-					//					Stdout.format("call message acceptor").newline;
+					Stdout.format("call message acceptor").newline;
 					message_acceptor(data, len, this);
 					//					Stdout.format("ok").newline;
 				} catch(Exception ex)
