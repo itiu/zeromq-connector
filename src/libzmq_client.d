@@ -130,7 +130,7 @@ class libzmq_client: mom_client
 				char* result = null;
 				try
 				{
-					Stdout.format("call message acceptor").newline;
+//					Stdout.format("call message acceptor").newline;
 					message_acceptor(data, len, this);
 					//					Stdout.format("ok").newline;
 				} catch(Exception ex)
@@ -140,6 +140,11 @@ class libzmq_client: mom_client
 				}
 			}
 		}
+	}
+	
+	public char[] getInfo ()
+	{
+		return "zeromq";
 	}
 
 }
