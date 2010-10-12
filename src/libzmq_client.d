@@ -1,18 +1,14 @@
 module libzmq_client;
 
-private import tango.io.Stdout;
 private import mom_client;
 private import Log;
-private import tango.core.Thread;
 private import libzmq_headers;
-private import tango.stdc.stringz;
-private import tango.stdc.string;
-private import tango.stdc.stdlib;
+private import std.c.string;
+private import std.c.stdlib;
 
 class libzmq_client: mom_client
 {
 	void* context = null;
-	//	void* soc_rep;
 	void* soc_rep;
 
 	bool isSend = false;
@@ -24,11 +20,11 @@ class libzmq_client: mom_client
 		context = zmq_init(1);
 		soc_rep = zmq_socket(context, soc_type.ZMQ_REP);
 
-		Stdout.format("libzmq_client: listen: {}", fromStringz(bind_to)).newline;
+		printf("libzmq_client: listen: %s\n", bind_to);
 		int rc = zmq_bind(soc_rep, bind_to);
 		if(rc != 0)
 		{
-			Stdout.format("error in zmq_bind: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
+			printf("error in zmq_bind: %s\n", zmq_strerror(zmq_errno()));
 			return;
 		}
 
@@ -36,10 +32,19 @@ class libzmq_client: mom_client
 
 	~this()
 	{
-		Stdout.format("libzmq_client:destroy").newline;
-		zmq_close(soc_rep);
+		//		printf("libzmq_client:destroy\n");
+
+		//		printf("libzmq_client:#0\n");
+		//		printf("libzmq_client:#a\n");
+		//		if (soc_rep !is null)
+		{
+			//		printf("libzmq_client:#1\n");
+			//		printf("libzmq_client:zmq_close, soc_rep=%p\n", soc_rep);
+			//		zmq_close(soc_rep);
+		}
 		//		zmq_close(soc_rep);
-		zmq_term(context);
+		//		printf("libzmq_client:zmq_term\n");
+		//		zmq_term(context);
 	}
 
 	void set_callback(void function(byte* txt, ulong size, mom_client from_client) _message_acceptor)
@@ -57,7 +62,7 @@ class libzmq_client: mom_client
 		int rc = zmq_msg_init_size(&msg, message_size);
 		if(rc != 0)
 		{
-			Stdout.format("error in zmq_msg_init_size: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
+			printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
 			return -1;
 		}
 
@@ -71,7 +76,7 @@ class libzmq_client: mom_client
 		rc = zmq_send(soc_rep, &msg, send_param);
 		if(rc != 0)
 		{
-			Stdout.format("libzmq_client.send:zmq_send: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
+			printf("libzmq_client.send:zmq_send: {}\n", zmq_strerror(zmq_errno()));
 			return -1;
 		}
 		isSend = true;
@@ -85,31 +90,27 @@ class libzmq_client: mom_client
 		return null;
 	}
 
-	void listener()
+	int listener()
 	{
-		Stdout.format("start listener").newline;
 
 		while(true)
 		{
 			zmq_msg_t msg;
 
-			//			Stdout.format("init message").newline;
 			int rc = zmq_msg_init(&msg);
 			if(rc != 0)
 			{
-				Stdout.format("error in zmq_msg_init_size: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
-				return;
+				printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
+				return -1;
 			}
-
-			//			Stdout.format("wait message").newline;
 
 			if(isSend == false)
 			{
 				rc = zmq_msg_init_size(&msg, 1);
 				if(rc != 0)
 				{
-					Stdout.format("error in zmq_msg_init_size: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
-					return;
+					printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
+					return -2;
 				}
 
 				rc = zmq_send(soc_rep, &msg, 0);
@@ -118,8 +119,8 @@ class libzmq_client: mom_client
 			rc = zmq_recv(soc_rep, &msg, 0);
 			if(rc != 0)
 			{
-				Stdout.format("error in zmq_recv: {}", fromStringz(zmq_strerror(zmq_errno()))).newline;
-				return;
+				printf("error in zmq_recv: %s\n", zmq_strerror(zmq_errno()));
+				return -3;
 			}
 			else
 			{
@@ -130,7 +131,7 @@ class libzmq_client: mom_client
 				char* result = null;
 				try
 				{
-//					Stdout.format("call message acceptor").newline;
+					//					Stdout.format("call message acceptor").newline;
 					message_acceptor(data, len, this);
 					//					Stdout.format("ok").newline;
 				} catch(Exception ex)
@@ -141,8 +142,8 @@ class libzmq_client: mom_client
 			}
 		}
 	}
-	
-	public char[] getInfo ()
+
+	public char[] getInfo()
 	{
 		return "zeromq";
 	}
