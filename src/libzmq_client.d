@@ -22,7 +22,7 @@ class libzmq_client: mom_client
 
 	bool isSend = false;
 
-	void function(byte* txt, ulong size, mom_client from_client) message_acceptor;
+	void function(byte* txt, int size, mom_client from_client) message_acceptor;
 
 	this(char* bind_to)
 	{
@@ -56,7 +56,7 @@ class libzmq_client: mom_client
 		//		zmq_term(context);
 	}
 
-	void set_callback(void function(byte* txt, ulong size, mom_client from_client) _message_acceptor)
+	void set_callback(void function(byte* txt, int size, mom_client from_client) _message_acceptor)
 	{
 		message_acceptor = _message_acceptor;
 	}
@@ -99,7 +99,7 @@ class libzmq_client: mom_client
 		return null;
 	}
 
-	int listener()
+	void listener()
 	{
 
 		while(true)
@@ -110,7 +110,7 @@ class libzmq_client: mom_client
 			if(rc != 0)
 			{
 				printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-				return -1;
+				return;
 			}
 
 			if(isSend == false)
@@ -119,7 +119,7 @@ class libzmq_client: mom_client
 				if(rc != 0)
 				{
 					printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-					return -2;
+					return;
 				}
 
 				rc = zmq_send(soc_rep, &msg, 0);
@@ -129,7 +129,7 @@ class libzmq_client: mom_client
 			if(rc != 0)
 			{
 				printf("error in zmq_recv: %s\n", zmq_strerror(zmq_errno()));
-				return -3;
+				return;
 			}
 			else
 			{
