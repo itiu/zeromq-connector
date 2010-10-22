@@ -1,6 +1,15 @@
 module Log;
 
-import std.stdio;
+version (D1)
+{
+private import std.stdio;
+}
+
+version (D2)
+{
+private import core.stdc.stdio;
+}
+
 import std.stdarg;
 
 package
@@ -29,7 +38,7 @@ private
 			delete log;
 		}
 
-		void trace(char[] format, ...)
+		void trace(string format, ...)
 		{
 			va_list ap;
 			ap = cast(va_list) &format;

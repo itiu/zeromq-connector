@@ -4,7 +4,16 @@ private import mom_client;
 private import Log;
 private import libzmq_headers;
 private import std.c.string;
+
+version (D1)
+{
 private import std.c.stdlib;
+}
+
+version (D2)
+{
+private import core.stdc.stdio;
+}
 
 class libzmq_client: mom_client
 {
@@ -143,7 +152,7 @@ class libzmq_client: mom_client
 		}
 	}
 
-	public char[] getInfo()
+	public string getInfo()
 	{
 		return "zeromq";
 	}
