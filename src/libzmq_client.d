@@ -8,11 +8,13 @@ private import std.c.string;
 version (D1)
 {
 private import std.c.stdlib;
+alias int listener_result;
 }
 
 version (D2)
 {
 private import core.stdc.stdio;
+alias void listener_result;
 }
 
 class libzmq_client: mom_client
@@ -99,7 +101,7 @@ class libzmq_client: mom_client
 		return null;
 	}
 
-	void listener()
+	listener_result listener()
 	{
 
 		while(true)
@@ -110,7 +112,15 @@ class libzmq_client: mom_client
 			if(rc != 0)
 			{
 				printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-				return;
+				
+				version (D2)
+				{
+    				    return;
+    				}
+				version (D1)
+				{
+    				    return -1;
+    				}
 			}
 
 			if(isSend == false)
@@ -119,7 +129,14 @@ class libzmq_client: mom_client
 				if(rc != 0)
 				{
 					printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-					return;
+				version (D2)
+				{
+    				    return;
+    				}
+				version (D1)
+				{
+    				    return -1;
+    				}
 				}
 
 				rc = zmq_send(soc_rep, &msg, 0);
@@ -129,7 +146,14 @@ class libzmq_client: mom_client
 			if(rc != 0)
 			{
 				printf("error in zmq_recv: %s\n", zmq_strerror(zmq_errno()));
-				return;
+				version (D2)
+				{
+    				    return;
+    				}
+				version (D1)
+				{
+    				    return -1;
+    				}
 			}
 			else
 			{

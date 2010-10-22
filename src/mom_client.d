@@ -4,7 +4,16 @@ interface mom_client
 	void set_callback(void function(byte* txt, int size, mom_client from_client) _message_acceptor);
 	
 	// in thread listens to the queue and calls _message_acceptor
+	
+	version (D2)
+	{
 	void listener();
+	}
+	
+	version (D1)
+	{
+	int listener();	
+	}
 	
 	// sends a message to the specified queue
 	int send(char* routingkey, char* messagebody, bool send_more);

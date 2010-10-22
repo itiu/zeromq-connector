@@ -29,7 +29,7 @@ void main(char[][] args)
 
 int count = 0;
 
-void get_message(byte* message, ulong message_size, mom_client from_client)
+void get_message(byte* message, int message_size, mom_client from_client)
 {
 	count++;
 	printf("[%i] data: %s\n", count, cast(char*) message);
