@@ -92,7 +92,15 @@ class libzmq_client: mom_client
 		}
 		isSend = true;
 
-		//		Stdout.format("#send is ok").newline;
+	        rc = zmq_msg_close (&msg);
+    		if (rc != 0) 
+    		{
+            		printf ("error in zmq_msg_close: %s\n", zmq_strerror (zmq_errno()));
+                        return -1;
+                }
+                               
+                               
+                               		//		Stdout.format("#send is ok").newline;
 		return 0;
 	}
 
@@ -106,22 +114,8 @@ class libzmq_client: mom_client
 
 		while(true)
 		{
+		int rc;
 			zmq_msg_t msg;
-
-			int rc = zmq_msg_init(&msg);
-			if(rc != 0)
-			{
-				printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-				
-				version (D2)
-				{
-    				    return;
-    				}
-				version (D1)
-				{
-    				    return -1;
-    				}
-			}
 
 			if(isSend == false)
 			{
@@ -140,6 +134,28 @@ class libzmq_client: mom_client
 				}
 
 				rc = zmq_send(soc_rep, &msg, 0);
+
+	    			rc = zmq_msg_close (&msg);
+    				if (rc != 0) 
+    				{
+            			    printf ("error in zmq_msg_close: %s\n", zmq_strerror (zmq_errno()));
+                    		    return;
+            			}
+			}
+
+			rc = zmq_msg_init(&msg);
+			if(rc != 0)
+			{
+				printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
+				
+				version (D2)
+				{
+    				    return;
+    				}
+				version (D1)
+				{
+    				    return -1;
+    				}
 			}
 
 			rc = zmq_recv(soc_rep, &msg, 0);
@@ -171,8 +187,16 @@ class libzmq_client: mom_client
 				{
 					//					Stdout.format("exception").newline;
 					//					send("", "");
-				}
+				}				
 			}
+			
+	    		rc = zmq_msg_close (&msg);
+    			if (rc != 0) 
+    			{
+            		    printf ("error in zmq_msg_close: %s\n", zmq_strerror (zmq_errno()));
+                    	    return;
+            		}
+			
 		}
 	}
 
