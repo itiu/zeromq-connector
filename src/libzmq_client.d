@@ -176,7 +176,7 @@ class libzmq_client: mom_client
 				isSend = false;
 
 				byte* data = cast(byte*) zmq_msg_data(&msg);
-				int len = strlen(cast(char*) data);
+				size_t len = zmq_msg_size (&msg);
 				char* result = null;
 				try
 				{
