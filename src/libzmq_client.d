@@ -181,7 +181,7 @@ class libzmq_client: mom_client
 				try
 				{
 					//					Stdout.format("call message acceptor").newline;
-					message_acceptor(data, len, this);
+					message_acceptor(data, len + 1, this);
 					//					Stdout.format("ok").newline;
 				} catch(Exception ex)
 				{
