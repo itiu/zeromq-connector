@@ -19,6 +19,8 @@ alias void listener_result;
 
 class libzmq_client: mom_client
 {
+	int count = 0;
+	
 	void* context = null;
 	void* soc_rep;
 
@@ -57,6 +59,12 @@ class libzmq_client: mom_client
 		//		printf("libzmq_client:zmq_term\n");
 		//		zmq_term(context);
 	}
+
+	void get_count (out int cnt)
+	{
+	 cnt = count;
+	 }
+ 
 
 	void set_callback(void function(byte* txt, int size, mom_client from_client) _message_acceptor)
 	{
@@ -181,6 +189,7 @@ class libzmq_client: mom_client
 				try
 				{
 					//					Stdout.format("call message acceptor").newline;
+					count++;
 					message_acceptor(data, len + 1, this);
 					//					Stdout.format("ok").newline;
 				} catch(Exception ex)

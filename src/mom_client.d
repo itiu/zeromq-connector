@@ -3,6 +3,8 @@ interface mom_client
 	// set callback function for listener ()
 	void set_callback(void function(byte* txt, int size, mom_client from_client) _message_acceptor);
 	
+        void get_count (out int cnt);
+                                         
 	// in thread listens to the queue and calls _message_acceptor
 	
 	version (D2)
