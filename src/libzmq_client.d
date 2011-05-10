@@ -28,19 +28,31 @@ class libzmq_client: mom_client
 
 	void function(byte* txt, int size, mom_client from_client) message_acceptor;
 
-	this(char* bind_to)
+	this(char* bind_to, bool isSingle = false)
 	{
 		context = zmq_init(1);
 		soc_rep = zmq_socket(context, soc_type.ZMQ_REP);
 
-		printf("libzmq_client: listen: %s\n", bind_to);
-		int rc = zmq_bind(soc_rep, bind_to);
-		if(rc != 0)
+		if (isSingle)
 		{
+		    printf("libzmq_client: listen from client: %s\n", bind_to);
+		    int rc = zmq_bind(soc_rep, bind_to);
+		    if(rc != 0)
+		    {	
 			printf("error in zmq_bind: %s\n", zmq_strerror(zmq_errno()));
 			return;
+		    }
 		}
-
+		else
+		{
+		    printf("libzmq_client: listen from router: %s\n", bind_to);
+		    int rc = zmq_connect(soc_rep, bind_to);
+		    if(rc != 0)
+		    {
+			printf("error in zmq_connect: %s\n", zmq_strerror(zmq_errno()));
+			return;
+		    }
+                }
 	}
 
 	~this()
