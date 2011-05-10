@@ -131,14 +131,14 @@ class libzmq_client: mom_client
 				if(rc != 0)
 				{
 					printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-				version (D2)
-				{
-    				    return;
-    				}
-				version (D1)
-				{
-    				    return -1;
-    				}
+				    version (D2)
+				    {
+    					return;
+    				    }
+				    version (D1)
+				    {
+    					return -1;
+    				    }
 				}
 
 				rc = zmq_send(soc_rep, &msg, 0);
@@ -147,7 +147,14 @@ class libzmq_client: mom_client
     				if (rc != 0) 
     				{
             			    printf ("error in zmq_msg_close: %s\n", zmq_strerror (zmq_errno()));
-                    		    return;
+				    version (D2)
+				    {
+    					return;
+    				    }
+				    version (D1)
+				    {
+    					return -1;
+    				    }
             			}
 			}
 
@@ -203,7 +210,15 @@ class libzmq_client: mom_client
     			if (rc != 0) 
     			{
             		    printf ("error in zmq_msg_close: %s\n", zmq_strerror (zmq_errno()));
-                    	    return;
+            		    
+			    version (D2)
+			    {
+				return;
+			    }
+			    version (D1)
+			    {
+				return -1;
+			    }
             		}
 			
 		}
