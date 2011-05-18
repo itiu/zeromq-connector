@@ -127,7 +127,7 @@ class zmq_pp_broker_client: mq_client
 
 				if(zmsg_size(msg) == 3)
 				{
-					//					printf("I: normal reply:");
+					// printf("I: normal reply:");
 
 					zframe_t* frame = zmsg_last(msg);
 					byte* msg_body = zframe_data(frame);
@@ -136,13 +136,14 @@ class zmq_pp_broker_client: mq_client
 					isSend = false;
 					// обработка принятого сообщения и отправка ответа
 
-					printf("zmq_pp_broker_client #1\n");
+//					printf("zmq_pp_broker_client #1\n");
+					count++;
 
 					ubyte[] outbuff;
 
 					message_acceptor(msg_body, size, this, outbuff);
 
-					printf("zmq_pp_broker_client #2\n");
+//					printf("zmq_pp_broker_client #2\n");
 
 					//					if (isSend == false)
 					//					{
@@ -150,7 +151,7 @@ class zmq_pp_broker_client: mq_client
 					//					}
 
 					//					zclock_sleep(50);
-					//					frame. 
+					zframe_reset(frame, cast(char*) outbuff, outbuff.length);
 
 					zmsg_send(&msg, worker);
 					//		zstr_send (worker, "safsfsd");
