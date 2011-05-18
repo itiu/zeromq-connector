@@ -1,7 +1,10 @@
+private import std.outbuffer;
+
 interface mq_client
 {
 	// set callback function for listener ()
-	void set_callback(void function(byte* data, int size, mq_client from_client) _message_acceptor);
+
+	void set_callback(void function(byte* data, int size, mq_client from_client, ref ubyte[]) _message_acceptor);
 
 	void get_count(out int cnt);
 
@@ -18,5 +21,5 @@ interface mq_client
 	}
 
 	// sends a message to the specified queue
-	int send(char* queue_name, char* messagebody, bool send_more);
+//	int send(char* queue_name, char* messagebody, int size, bool send_more);
 }

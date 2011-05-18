@@ -5,6 +5,8 @@ private import libzmq_headers;
 private import mq_client;
 private import std.c.string;
 
+private import std.outbuffer;
+
 version(D1)
 {
 	private import std.c.stdlib;
@@ -28,7 +30,7 @@ class zmq_point_to_poin_client: mq_client
 
 	bool isSend = false;
 
-	void function(byte* txt, int size, mq_client from_client) message_acceptor;
+	void function(byte* txt, int size, mq_client from_client, ref ubyte[] out_data) message_acceptor;
 
 	this(char* bind_to)
 	{
@@ -40,7 +42,7 @@ class zmq_point_to_poin_client: mq_client
 			if(rc != 0)
 			{
 				printf("error in zmq_bind: %s\n", zmq_strerror(zmq_errno()));
-				return;
+				throw new Exception ("error in zmq_bind: " ~ fromStringz (zmq_strerror(zmq_errno())));
 			}
 /*
 			printf("libzmq_client: listen from router: %s\n", bind_to);
@@ -75,17 +77,17 @@ class zmq_point_to_poin_client: mq_client
 		cnt = count;
 	}
 
-	void set_callback(void function(byte* txt, int size, mq_client from_client) _message_acceptor)
+	void set_callback(void function(byte* txt, int size, mq_client from_client, ref ubyte[] out_data) _message_acceptor)
 	{
 		message_acceptor = _message_acceptor;
 	}
 
-	int send(char* routingkey, char* messagebody, bool send_more)
-	{
+	int send(char* messagebody, int message_size, bool send_more)
+	{                          
 		zmq_msg_t msg;
 
 		//		Stdout.format("#send").newline;
-		int message_size = strlen(messagebody);
+//		int message_size = strlen(messagebody);
 
 		int rc = zmq_msg_init_size(&msg, message_size);
 		if(rc != 0)
@@ -197,10 +199,13 @@ class zmq_point_to_poin_client: mq_client
 				char* result = null;
 				try
 				{
-					//					Stdout.format("call message acceptor").newline;
 					count++;
-					message_acceptor(data, len + 1, this);
-					//					Stdout.format("ok").newline;
+					
+					ubyte[] outbuff;
+					
+					message_acceptor(data, len + 1, this, outbuff);
+					
+					send(cast (char*)outbuff, outbuff.length, false);					
 				} catch(Exception ex)
 				{
 					//					Stdout.format("exception").newline;
@@ -226,3 +231,10 @@ class zmq_point_to_poin_client: mq_client
 		}
 	}
 }
+
+string fromStringz(char* s)
+{
+        return cast(immutable) (s ? s[0 .. strlen(s)] : null);
+}
+        
+        

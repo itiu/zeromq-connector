@@ -324,3 +324,31 @@ extern (C) void
 //  Self test of this class
 extern(C)
 	int zclock_test(bool verbose);
+
+
+
+
+//  Receive a string off a socket, caller must free it
+extern(C) char *
+    zstr_recv (void *socket);
+
+//  Receive a string off a socket if socket had input waiting
+extern(C) char *
+    zstr_recv_nowait (void *socket);
+
+//  Send a string to a socket in 0MQ string format
+extern(C) int
+    zstr_send (void *socket, const char *string);
+
+//  Send a string to a socket in 0MQ string format, with MORE flag
+extern(C) int
+    zstr_sendm (void *socket, const char *string);
+
+//  Send a formatted string to a socket
+extern(C) int
+    zstr_sendf (void *socket, const char *format, ...);
+
+//  Self test of this class
+extern(C) int
+    zstr_test (bool verbose);
+

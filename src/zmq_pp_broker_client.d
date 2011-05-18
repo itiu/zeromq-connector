@@ -16,6 +16,8 @@ private import mq_client;
 
 private import libczmq_headers;
 
+private import std.outbuffer;
+
 static int PPP_HEARTBEAT_LIVENESS = 3; //  		3-5 is reasonable
 static int PPP_HEARTBEAT_INTERVAL = 1000; //  	msecs
 static int PPP_INTERVAL_INIT = 1000; //  		Initial reconnect
@@ -49,7 +51,7 @@ class zmq_pp_broker_client: mq_client
 	int64_t heartbeat_at;
 	char* bind_to;
 
-	void function(byte* txt, int size, mq_client from_client) message_acceptor;
+	void function(byte* txt, int size, mq_client from_client, ref ubyte[] out_data) message_acceptor;
 
 	int count = 0;
 	bool isSend = false;
@@ -78,7 +80,7 @@ class zmq_pp_broker_client: mq_client
 	}
 
 	// set callback function for listener ()
-	void set_callback(void function(byte* txt, int size, mq_client from_client) _message_acceptor)
+	void set_callback(void function(byte* txt, int size, mq_client from_client, ref ubyte[] out_data) _message_acceptor)
 	{
 		message_acceptor = _message_acceptor;
 	}
@@ -133,22 +135,33 @@ class zmq_pp_broker_client: mq_client
 
 					isSend = false;
 					// обработка принятого сообщения и отправка ответа
-					message_acceptor(msg_body, size, this);
-					
-//					if (isSend == false)
-//					{
-//						возможно потребуется обработка такой ситуации
-//					}
+
+					printf("zmq_pp_broker_client #1\n");
+
+					ubyte[] outbuff;
+
+					message_acceptor(msg_body, size, this, outbuff);
+
+					printf("zmq_pp_broker_client #2\n");
+
+					//					if (isSend == false)
+					//					{
+					//						возможно потребуется обработка такой ситуации
+					//					}
 
 					//					zclock_sleep(50);
+					//					frame. 
 
-					//					zmsg_send(&msg, worker);
+					zmsg_send(&msg, worker);
+					//		zstr_send (worker, "safsfsd");
+
 					liveness = PPP_HEARTBEAT_LIVENESS;
 
 					//				Thread.getThis().sleep(100_000);
 
 					if(zctx_interrupted)
 						break;
+
 				} else if(zmsg_size(msg) == 1)
 				{
 					zframe_t* frame = zmsg_first(msg);
@@ -203,53 +216,6 @@ class zmq_pp_broker_client: mq_client
 		{
 			return;
 		}
-	}
-
-	// sends a message to the specified queue
-	int send(char* routingkey, char* messagebody, bool send_more)
-	{
-		zmq_msg_t msg;
-
-		//		Stdout.format("#send").newline;
-		int message_size = strlen(messagebody);
-
-		int rc = zmq_msg_init_size(&msg, message_size);
-		if(rc != 0)
-		{
-			printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-			return -1;
-		}
-
-		std.c.string.memcpy(zmq_msg_data(&msg), messagebody, message_size);
-
-		int send_param = 0;
-
-		if(send_more)
-			send_param = send_recv_opt.ZMQ_SNDMORE;
-
-		rc = zmq_send(worker, &msg, send_param);
-		if(rc != 0)
-		{
-			printf("libzmq_client.send:zmq_send: {}\n", zmq_strerror(zmq_errno()));
-			return -1;
-		}
-		isSend = true;
-
-		rc = zmq_msg_close(&msg);
-		if(rc != 0)
-		{
-			printf("error in zmq_msg_close: %s\n", zmq_strerror(zmq_errno()));
-			return -1;
-		}
-
-		//		Stdout.format("#send is ok").newline;
-		return 0;
-	}
-
-	// forward to receiving the message
-	char* get_message()
-	{
-		return null;
 	}
 
 	//	 Set simple random printable identity on socket	
