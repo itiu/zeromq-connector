@@ -2,12 +2,13 @@ module Log;
 
 version (D1)
 {
-private import std.stdio;
+    private import std.stdio;
 }
 
 version (D2)
 {
-private import core.stdc.stdio;
+//    private import std.stdio;
+    private import core.stdc.stdio;
 }
 
 import std.stdarg;
