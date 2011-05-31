@@ -56,9 +56,9 @@ class zmq_pp_broker_client: mq_client
 	int count = 0;
 	bool isSend = false;
 
-	this(char* _bind_to)
+	this(string _bind_to)
 	{
-		bind_to = _bind_to;
+		bind_to = cast(char*)(_bind_to ~ "\0");
 		printf("worker\n");
 
 		printf("create soc\n");

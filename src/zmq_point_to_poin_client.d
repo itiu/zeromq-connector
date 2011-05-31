@@ -1,11 +1,12 @@
 module zmq_point_to_poin_client;
 
-private import Log;
+private import std.c.string;
+private import std.stdio;
+private import std.outbuffer;
+
 private import libzmq_headers;
 private import mq_client;
-private import std.c.string;
-
-private import std.outbuffer;
+private import Log;
 
 version(D1)
 {
@@ -32,18 +33,19 @@ class zmq_point_to_poin_client: mq_client
 
 	void function(byte* txt, int size, mq_client from_client, ref ubyte[] out_data) message_acceptor;
 
-	this(char* bind_to)
+	this(string bind_to)
 	{
 		context = zmq_init(1);
 		soc_rep = zmq_socket(context, soc_type.ZMQ_REP);
 
-			printf("libzmq_client: listen from client: %s\n", bind_to);
-			int rc = zmq_bind(soc_rep, bind_to);
+			writeln("libzmq_client: listen from client:", bind_to);
+			int rc = zmq_bind(soc_rep, cast(char*)(bind_to ~ "\0"));
 			if(rc != 0)
 			{
 				printf("error in zmq_bind: %s\n", zmq_strerror(zmq_errno()));
 				throw new Exception ("error in zmq_bind: " ~ fromStringz (zmq_strerror(zmq_errno())));
 			}
+			writeln("ok");
 /*
 			printf("libzmq_client: listen from router: %s\n", bind_to);
 			int rc = zmq_connect(soc_rep, bind_to);
