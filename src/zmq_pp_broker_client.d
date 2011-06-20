@@ -261,4 +261,19 @@ class zmq_pp_broker_client: mq_client
 		return _worker;
 	}
 
+	int send(void* soc_rep, char* messagebody, int message_size, bool send_more)
+	{
+		return -1;
+	}
+	
+	void* connect_as_req (string connect_to)
+	{
+		return null;
+	}
+	
+	char* reciev (void* soc)
+	{
+		return null;
+	}
+	
 }

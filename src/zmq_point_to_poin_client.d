@@ -33,28 +33,41 @@ class zmq_point_to_poin_client: mq_client
 
 	void function(byte* txt, int size, mq_client from_client, ref ubyte[] out_data) message_acceptor;
 
+	void* connect_as_req (string connect_to)
+	{
+		void* soc = zmq_socket(context, soc_type.ZMQ_REQ);
+
+	    int rc = zmq_connect (soc, cast(char*)connect_to);
+	    if (rc != 0) {
+	        printf ("error in zmq_connect: %s\n", fromStringz (zmq_strerror (zmq_errno())));
+	        return null;
+	    }		
+	    
+	    return soc; 
+	}
+		
 	this(string bind_to)
 	{
 		context = zmq_init(1);
 		soc_rep = zmq_socket(context, soc_type.ZMQ_REP);
 
-			writeln("libzmq_client: listen from client:", bind_to);
-			int rc = zmq_bind(soc_rep, cast(char*)(bind_to ~ "\0"));
-			if(rc != 0)
-			{
-				printf("error in zmq_bind: %s\n", zmq_strerror(zmq_errno()));
-				throw new Exception ("error in zmq_bind: " ~ fromStringz (zmq_strerror(zmq_errno())));
-			}
-			writeln("ok");
-/*
-			printf("libzmq_client: listen from router: %s\n", bind_to);
-			int rc = zmq_connect(soc_rep, bind_to);
-			if(rc != 0)
-			{
-				printf("error in zmq_connect: %s\n", zmq_strerror(zmq_errno()));
-				return;
-			}
-*/			
+		writeln("libzmq_client: listen from client:", bind_to);
+		int rc = zmq_bind(soc_rep, cast(char*) (bind_to ~ "\0"));
+		if(rc != 0)
+		{
+			printf("error in zmq_bind: %s\n", zmq_strerror(zmq_errno()));
+			throw new Exception("error in zmq_bind: " ~ fromStringz(zmq_strerror(zmq_errno())));
+		}
+		writeln("ok");
+		/*
+		 printf("libzmq_client: listen from router: %s\n", bind_to);
+		 int rc = zmq_connect(soc_rep, bind_to);
+		 if(rc != 0)
+		 {
+		 printf("error in zmq_connect: %s\n", zmq_strerror(zmq_errno()));
+		 return;
+		 }
+		 */
 	}
 
 	~this()
@@ -84,12 +97,12 @@ class zmq_point_to_poin_client: mq_client
 		message_acceptor = _message_acceptor;
 	}
 
-	int send(char* messagebody, int message_size, bool send_more)
-	{                          
+	int send(void* soc_rep, char* messagebody, int message_size, bool send_more)
+	{
 		zmq_msg_t msg;
 
 		//		Stdout.format("#send").newline;
-//		int message_size = strlen(messagebody);
+		//		int message_size = strlen(messagebody);
 
 		int rc = zmq_msg_init_size(&msg, message_size);
 		if(rc != 0)
@@ -124,9 +137,40 @@ class zmq_point_to_poin_client: mq_client
 		return 0;
 	}
 
+	char* reciev (void* soc)
+	{
+		char* data = null;
+		zmq_msg_t msg;
+		int rc = zmq_msg_init(&msg);
+		if(rc != 0)
+		{
+			printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
+			return null;
+		}
+
+		rc = zmq_recv(soc, &msg, 0);
+		if(rc != 0)
+		{
+			printf("error in zmq_recv: %s\n", zmq_strerror(zmq_errno()));
+			return null;
+		} else
+		{
+			data = cast(char*) zmq_msg_data(&msg);
+			size_t len = zmq_msg_size(&msg);
+		}
+
+		rc = zmq_msg_close(&msg);
+		if(rc != 0)
+		{
+			printf("error in zmq_msg_close: %s\n", zmq_strerror(zmq_errno()));
+			return null;
+		}
+		
+		return data;		
+	}
+	
 	listener_result listener()
 	{
-
 		while(true)
 		{
 			int rc;
@@ -202,12 +246,12 @@ class zmq_point_to_poin_client: mq_client
 				try
 				{
 					count++;
-					
+
 					ubyte[] outbuff;
-					
+
 					message_acceptor(data, len + 1, this, outbuff);
-					
-					send(cast (char*)outbuff, outbuff.length, false);					
+
+					send(soc_rep, cast(char*) outbuff, outbuff.length, false);
 				} catch(Exception ex)
 				{
 					//					Stdout.format("exception").newline;
@@ -236,7 +280,5 @@ class zmq_point_to_poin_client: mq_client
 
 string fromStringz(char* s)
 {
-        return cast(immutable) (s ? s[0 .. strlen(s)] : null);
+	return cast(immutable) (s ? s[0 .. strlen(s)] : null);
 }
-        
-        

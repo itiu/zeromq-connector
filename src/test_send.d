@@ -14,7 +14,7 @@ void main(char[][] args)
 {
 	mq_client client = null;
 
-	char* bind_to = cast(char*)"tcp://127.0.0.1:5556";
+	string bind_to = "tcp://127.0.0.1:5556";
 	client = new zmq_point_to_poin_client(bind_to);
 
 //	client.send("**", "$", false);
