@@ -10,14 +10,14 @@ private import tango.util.digest.Sha1;
 private import tango.util.uuid.RandomGen;
 private import tango.math.random.Twister;
 
+private import std.datetime;
+
 private import libzmq_headers;
 
 private import Log;
 
 private import dzmq;
 private import mq_client;
-
-//private import libczmq_headers;
 
 private import std.outbuffer;
 
@@ -26,7 +26,19 @@ static int PPP_HEARTBEAT_INTERVAL = 1000; //  	msecs
 static int PPP_INTERVAL_INIT = 1000; //  		Initial reconnect
 static int PPP_INTERVAL_MAX = 32000; //  		After exponential backoff
 static string PPP_HEARTBEAT = "H";
-static string PPP_READY = "R";
+
+// поведение:
+//	all - выполняет все операции
+//  writer - только операции записи
+//  reader - только операции чтения
+//  logger - ничего не выполняет а только логгирует операции, параметры logging не учитываются 		
+
+static string PPP_BEHAVIOR_ALL = "RA";
+static string PPP_BEHAVIOR_WRITER = "RW";
+static string PPP_BEHAVIOR_READER = "RR";
+static string PPP_BEHAVIOR_LOGGER = "RL";
+
+static string PPP_READY;
 
 version(D1)
 {
@@ -61,8 +73,19 @@ class zmq_pp_broker_client: mq_client
 	int count = 0;
 	bool isSend = false;
 
-	this(string _bind_to)
+	this(string _bind_to, string _behavior)
 	{
+		PPP_READY = PPP_BEHAVIOR_ALL;
+
+		if(_behavior == "all")
+			PPP_READY = PPP_BEHAVIOR_ALL;
+		else if(_behavior == "writer")
+			PPP_READY = PPP_BEHAVIOR_WRITER;
+		else if(_behavior == "reader")
+			PPP_READY = PPP_BEHAVIOR_READER;
+		else if(_behavior == "logger")
+			PPP_READY = PPP_BEHAVIOR_LOGGER;
+
 		bind_to = cast(char*) (_bind_to);// ~ "\0");
 		printf("worker\n");
 
@@ -74,7 +97,7 @@ class zmq_pp_broker_client: mq_client
 		interval = PPP_INTERVAL_INIT;
 
 		//  Send out heartbeats at regular intervals
-		heartbeat_at = zclock_time() + PPP_HEARTBEAT_INTERVAL * 1000;
+		heartbeat_at = zclock_time() + PPP_HEARTBEAT_INTERVAL * 1000 * 10;
 	}
 
 	~this()
@@ -99,10 +122,7 @@ class zmq_pp_broker_client: mq_client
 	{
 		while(1)
 		{
-
-			//			if(zctx_interrupted)
-			//				break;
-
+			//			StopWatch sw;
 			zmq_pollitem_t items[] = new zmq_pollitem_t[1];
 
 			//        printf("create soc\n");
@@ -119,6 +139,8 @@ class zmq_pp_broker_client: mq_client
 			//        printf("items [0].revents = %d\n", items [0].revents);
 			if(items[0].revents & io_multiplexing.ZMQ_POLLIN)
 			{
+				//	    		sw.start();
+
 				//  Get message
 				//  - 3-part envelope + content -> request
 				//  - 1-part "HEARTBEAT" -> heartbeat            
@@ -146,8 +168,13 @@ class zmq_pp_broker_client: mq_client
 
 					ubyte[] outbuff;
 
+					//		        		sw.stop();
+					//		        		printf ("(1):%d\n", sw.peek().usecs);
+
 					message_acceptor(msg_body, size, this, outbuff);
 
+					//			sw.reset ();
+					//	    		sw.start();
 					//					printf("zmq_pp_broker_client #2\n");
 
 					//					if (isSend == false)
@@ -167,7 +194,7 @@ class zmq_pp_broker_client: mq_client
 
 					//					if(zctx_interrupted)
 					//						break;
-//					zmsg_destroy(&msg);
+					//					zmsg_destroy(&msg);
 
 				} else if(size_msg == 1)
 				{
@@ -187,26 +214,31 @@ class zmq_pp_broker_client: mq_client
 					zmsg_destroy(&msg);
 				}
 				interval = PPP_INTERVAL_INIT;
-			} else if(--liveness == 0)
+			} else
 			{
-				printf("W: heartbeat failure, can't reach queue\n");
-				printf("W: reconnecting in %zd msec...\n", interval);
-				Thread.getThis().sleep(interval * 10_000);
-
-				if(interval < PPP_INTERVAL_MAX)
+				if(liveness < PPP_HEARTBEAT_LIVENESS)
+					printf("!!!! --liveness = %d\n", liveness);
+				if(--liveness == 0)
 				{
-					interval *= 2;
-				}
+					printf("W: heartbeat failure, can't reach queue\n");
+					printf("W: reconnecting in %zd msec...\n", interval);
+					Thread.getThis().sleep(interval * 10_000);
 
-				zsocket_destroy(ctx, worker);
-				worker = s_worker_socket(ctx, bind_to);
-				liveness = PPP_HEARTBEAT_LIVENESS;
+					if(interval < PPP_INTERVAL_MAX)
+					{
+						interval *= 2;
+					}
+
+					zsocket_destroy(ctx, worker);
+					worker = s_worker_socket(ctx, bind_to);
+					liveness = PPP_HEARTBEAT_LIVENESS;
+				}
 			}
 
 			//  Send heartbeat to queue if it's time
 			if(zclock_time() > heartbeat_at)
 			{
-				heartbeat_at = zclock_time() + PPP_HEARTBEAT_INTERVAL * 1000;
+				heartbeat_at = zclock_time() + PPP_HEARTBEAT_INTERVAL * 1000 * 10;
 				//          printf ("I: worker heartbeat\n");
 				zframe_t* frame = zframe_new(cast(char*) PPP_HEARTBEAT, PPP_HEARTBEAT.length);
 				zframe_send(&frame, worker, 0);
@@ -214,6 +246,8 @@ class zmq_pp_broker_client: mq_client
 				//				printf ("count_h=%d\n", count_h);
 			}
 
+			//		        		sw.stop();
+			//		        		printf ("(2):%d\n", sw.peek().usecs);
 			//			if(zctx_interrupted)
 			//				break;
 		}
@@ -277,7 +311,7 @@ class zmq_pp_broker_client: mq_client
 		zmq_setsockopt(soc_worker, soc_opt.ZMQ_LINGER, &linger, linger.sizeof);
 
 		//  Tell queue we're ready for work
-		printf("I: ( %s worker ready) \n", cast(char*) identity);
+		writeln("I: worker ready: [", identity, "] ", PPP_READY);
 		zframe_t* frame = zframe_new(cast(char*) PPP_READY, PPP_READY.length);
 		zframe_send(&frame, soc_worker, 0);
 
