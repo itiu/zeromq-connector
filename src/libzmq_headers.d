@@ -19,6 +19,8 @@
 
 module libzmq_headers;
 
+private import std.c.string;
+
 /******************************************************************************/
 /*  0MQ versioning support.                                                   */
 /******************************************************************************/
@@ -231,3 +233,9 @@ enum devices
 }
 
 extern (C) int zmq_device (int device, void * insocket, void* outsocket);
+
+public string zmq_error2string (int errnum)
+{
+    char* err_text = zmq_strerror (errnum);
+    return cast (string) err_text[0..strlen (err_text)];
+}

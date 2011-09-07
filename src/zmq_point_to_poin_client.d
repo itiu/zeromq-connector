@@ -22,6 +22,13 @@ version(D2)
 	alias void listener_result;
 }
 
+Logger log;
+
+static this()
+{
+	log = new Logger("zmq", "log", null);
+}
+
 class zmq_point_to_poin_client: mq_client
 {
 	int count = 0;
@@ -29,61 +36,52 @@ class zmq_point_to_poin_client: mq_client
 	void* context = null;
 	void* soc_rep;
 
-	bool isSend = false;
+	bool need_resend_msg = false;
 
 	void function(byte* txt, int size, mq_client from_client, ref ubyte[] out_data) message_acceptor;
 
-	void* connect_as_req (string connect_to)
+	void* connect_as_req(string connect_to)
 	{
 		void* soc = zmq_socket(context, soc_type.ZMQ_REQ);
 
-	    int rc = zmq_connect (soc, cast(char*)connect_to);
-	    if (rc != 0) {
-	        printf ("error in zmq_connect: %s\n", fromStringz (zmq_strerror (zmq_errno())));
-	        return null;
-	    }		
-	    
-	    return soc; 
+		int rc = zmq_connect(soc, cast(char*) connect_to);
+		if(rc != 0)
+		{
+			log.trace("error in zmq_connect: %s", zmq_error2string(zmq_errno()));
+			return null;
+		}
+
+		return soc;
 	}
-		
+
 	this(string bind_to)
 	{
 		context = zmq_init(1);
 		soc_rep = zmq_socket(context, soc_type.ZMQ_REP);
 
-		writeln("libzmq_client: listen from client:", bind_to);
+		log.trace("libzmq_client: listen from client: %s", bind_to);
 		int rc = zmq_bind(soc_rep, cast(char*) (bind_to ~ "\0"));
 		if(rc != 0)
 		{
-			printf("error in zmq_bind: %s\n", zmq_strerror(zmq_errno()));
-			throw new Exception("error in zmq_bind: " ~ fromStringz(zmq_strerror(zmq_errno())));
+			log.trace("error in zmq_bind: %s", zmq_error2string(zmq_errno()));
+			throw new Exception("error in zmq_bind: " ~ zmq_error2string(zmq_errno()));
 		}
-		writeln("ok");
-		/*
-		 printf("libzmq_client: listen from router: %s\n", bind_to);
-		 int rc = zmq_connect(soc_rep, bind_to);
-		 if(rc != 0)
-		 {
-		 printf("error in zmq_connect: %s\n", zmq_strerror(zmq_errno()));
-		 return;
-		 }
-		 */
 	}
 
 	~this()
 	{
-		//		printf("libzmq_client:destroy\n");
+		//		log.trace("libzmq_client:destroy\n");
 
-		//		printf("libzmq_client:#0\n");
-		//		printf("libzmq_client:#a\n");
+		//		log.trace("libzmq_client:#0\n");
+		//		log.trace("libzmq_client:#a\n");
 		//		if (soc_rep !is null)
 		{
-			//		printf("libzmq_client:#1\n");
-			//		printf("libzmq_client:zmq_close, soc_rep=%p\n", soc_rep);
+			//		log.trace("libzmq_client:#1\n");
+			//		log.trace("libzmq_client:zmq_close, soc_rep=%p\n", soc_rep);
 			//		zmq_close(soc_rep);
 		}
 		//		zmq_close(soc_rep);
-		//		printf("libzmq_client:zmq_term\n");
+		//		log.trace("libzmq_client:zmq_term\n");
 		//		zmq_term(context);
 	}
 
@@ -101,13 +99,10 @@ class zmq_point_to_poin_client: mq_client
 	{
 		zmq_msg_t msg;
 
-		//		Stdout.format("#send").newline;
-		//		int message_size = strlen(messagebody);
-
 		int rc = zmq_msg_init_size(&msg, message_size);
 		if(rc != 0)
 		{
-			printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
+			log.trace("error in zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
 			return -1;
 		}
 
@@ -121,37 +116,38 @@ class zmq_point_to_poin_client: mq_client
 		rc = zmq_send(soc_rep, &msg, send_param);
 		if(rc != 0)
 		{
-			printf("libzmq_client.send:zmq_send: {}\n", zmq_strerror(zmq_errno()));
+			log.trace("libzmq_client.send:zmq_send: {}\n", zmq_error2string(zmq_errno()));
 			return -1;
 		}
-		isSend = true;
+
+		need_resend_msg = false; // ответное сообщение было отправлено, снимем флажок о требовании отправки повторного сообщения
 
 		rc = zmq_msg_close(&msg);
 		if(rc != 0)
 		{
-			printf("error in zmq_msg_close: %s\n", zmq_strerror(zmq_errno()));
+			log.trace("error in zmq_msg_close: %s", zmq_error2string(zmq_errno()));
 			return -1;
 		}
 
-		//		Stdout.format("#send is ok").newline;
 		return 0;
 	}
 
-	char* reciev (void* soc)
+	char* reciev(void* soc)
 	{
 		char* data = null;
 		zmq_msg_t msg;
 		int rc = zmq_msg_init(&msg);
 		if(rc != 0)
 		{
-			printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
+			log.trace("error in zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
 			return null;
 		}
 
 		rc = zmq_recv(soc, &msg, 0);
 		if(rc != 0)
 		{
-			printf("error in zmq_recv: %s\n", zmq_strerror(zmq_errno()));
+			rc = zmq_msg_close(&msg);
+			log.trace("error in zmq_recv: %s", zmq_error2string(zmq_errno()));
 			return null;
 		} else
 		{
@@ -162,118 +158,90 @@ class zmq_point_to_poin_client: mq_client
 		rc = zmq_msg_close(&msg);
 		if(rc != 0)
 		{
-			printf("error in zmq_msg_close: %s\n", zmq_strerror(zmq_errno()));
+			log.trace("error in zmq_msg_close: %s", zmq_error2string(zmq_errno()));
 			return null;
 		}
-		
-		return data;		
+
+		return data;
 	}
-	
+
 	listener_result listener()
 	{
 		while(true)
 		{
-			int rc;
-			zmq_msg_t msg;
-
-			if(isSend == false)
+			while(true)
 			{
-				rc = zmq_msg_init_size(&msg, 1);
-				if(rc != 0)
+				int rc;
+				zmq_msg_t msg;
+
+				if(need_resend_msg == true)
 				{
-					printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-					version(D2)
+					rc = zmq_msg_init_size(&msg, 1);
+					if(rc != 0)
 					{
-						return;
+						log.trace("error in #1 zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
+						break;
 					}
-					version(D1)
+
+					rc = zmq_send(soc_rep, &msg, 0);
+					if(rc != 0)
 					{
-						return -1;
+						log.trace("error in #1 zmq_msg_send: %s", zmq_error2string(zmq_errno()));
+						zmq_msg_close(&msg);
+						break;
+					}
+
+					rc = zmq_msg_close(&msg);
+					if(rc != 0)
+					{
+						log.trace("error in #1 zmq_msg_close: %s", zmq_error2string(zmq_errno()));
+						zmq_msg_close(&msg);
+						break;
 					}
 				}
 
-				rc = zmq_send(soc_rep, &msg, 0);
+				rc = zmq_msg_init(&msg);
+				if(rc != 0)
+				{
+					log.trace("error in zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
+					zmq_msg_close(&msg);
+					break;
+				}
+
+				rc = zmq_recv(soc_rep, &msg, 0);
+				if(rc != 0)
+				{
+					log.trace("error in zmq_recv: %s", zmq_error2string(zmq_errno()));
+					zmq_msg_close(&msg);
+					break;
+				} else
+				{
+					need_resend_msg = true;
+
+					byte* data = cast(byte*) zmq_msg_data(&msg);
+					size_t len = zmq_msg_size(&msg);
+					char* result = null;
+					try
+					{
+						count++;
+
+						ubyte[] outbuff;
+
+						message_acceptor(data, len + 1, this, outbuff);
+
+						send(soc_rep, cast(char*) outbuff, outbuff.length, false);
+					} catch(Exception ex)
+					{
+						log.trace("ex! user function callback, %s", ex.msg);
+					}
+				}
 
 				rc = zmq_msg_close(&msg);
 				if(rc != 0)
 				{
-					printf("error in zmq_msg_close: %s\n", zmq_strerror(zmq_errno()));
-					version(D2)
-					{
-						return;
-					}
-					version(D1)
-					{
-						return -1;
-					}
+					log.trace("error in zmq_msg_close: %s", zmq_error2string(zmq_errno()));
 				}
 			}
-
-			rc = zmq_msg_init(&msg);
-			if(rc != 0)
-			{
-				printf("error in zmq_msg_init_size: %s\n", zmq_strerror(zmq_errno()));
-
-				version(D2)
-				{
-					return;
-				}
-				version(D1)
-				{
-					return -1;
-				}
-			}
-
-			rc = zmq_recv(soc_rep, &msg, 0);
-			if(rc != 0)
-			{
-				printf("error in zmq_recv: %s\n", zmq_strerror(zmq_errno()));
-				version(D2)
-				{
-					return;
-				}
-				version(D1)
-				{
-					return -1;
-				}
-			} else
-			{
-				isSend = false;
-
-				byte* data = cast(byte*) zmq_msg_data(&msg);
-				size_t len = zmq_msg_size(&msg);
-				char* result = null;
-				try
-				{
-					count++;
-
-					ubyte[] outbuff;
-
-					message_acceptor(data, len + 1, this, outbuff);
-
-					send(soc_rep, cast(char*) outbuff, outbuff.length, false);
-				} catch(Exception ex)
-				{
-					//					Stdout.format("exception").newline;
-					//					send("", "");
-				}
-			}
-
-			rc = zmq_msg_close(&msg);
-			if(rc != 0)
-			{
-				printf("error in zmq_msg_close: %s\n", zmq_strerror(zmq_errno()));
-
-				version(D2)
-				{
-					return;
-				}
-				version(D1)
-				{
-					return -1;
-				}
-			}
-
 		}
 	}
 }
