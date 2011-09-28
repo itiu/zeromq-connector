@@ -328,7 +328,7 @@ class zmq_pp_broker_client: mq_client
 		return null;
 	}
 
-	char* reciev(void* soc)
+	string reciev(void* soc)
 	{
 		return null;
 	}

@@ -132,9 +132,9 @@ class zmq_point_to_poin_client: mq_client
 		return 0;
 	}
 
-	char* reciev(void* soc)
+	string reciev(void* soc)
 	{
-		char* data = null;
+		string data = null;
 		zmq_msg_t msg;
 		int rc = zmq_msg_init(&msg);
 		if(rc != 0)
@@ -151,8 +151,9 @@ class zmq_point_to_poin_client: mq_client
 			return null;
 		} else
 		{
-			data = cast(char*) zmq_msg_data(&msg);
+			char* res = cast(char*)zmq_msg_data(&msg);
 			size_t len = zmq_msg_size(&msg);
+			data = cast(string)res[0..len];
 		}
 
 		rc = zmq_msg_close(&msg);

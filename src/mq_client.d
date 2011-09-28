@@ -23,5 +23,5 @@ interface mq_client
 	// sends a message to the specified socket
 	void* connect_as_req (string connect_to);
 	int send(void* soc, char* messagebody, int message_size, bool send_more);
-	char* reciev(void* soc);
+	string reciev(void* soc);
 }
