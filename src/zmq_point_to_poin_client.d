@@ -47,7 +47,7 @@ class zmq_point_to_poin_client: mq_client
 		int rc = zmq_connect(soc, cast(char*) connect_to);
 		if(rc != 0)
 		{
-			log.trace("error in zmq_connect: %s", zmq_error2string(zmq_errno()));
+			log.trace("error in zmq_connect: (errcode:%d) %s",  zmq_errno(), zmq_error2string(zmq_errno()));
 			return null;
 		}
 
@@ -102,7 +102,7 @@ class zmq_point_to_poin_client: mq_client
 		int rc = zmq_msg_init_size(&msg, message_size);
 		if(rc != 0)
 		{
-			log.trace("error in zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
+			log.trace("error in zmq_msg_init_size: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 			return -1;
 		}
 
@@ -125,7 +125,7 @@ class zmq_point_to_poin_client: mq_client
 		rc = zmq_msg_close(&msg);
 		if(rc != 0)
 		{
-			log.trace("error in zmq_msg_close: %s", zmq_error2string(zmq_errno()));
+			log.trace("error in zmq_msg_close: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 			return -1;
 		}
 
@@ -139,7 +139,7 @@ class zmq_point_to_poin_client: mq_client
 		int rc = zmq_msg_init(&msg);
 		if(rc != 0)
 		{
-			log.trace("error in zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
+			log.trace("error in  reciev:zmq_msg_init_size: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 			return null;
 		}
 
@@ -147,7 +147,7 @@ class zmq_point_to_poin_client: mq_client
 		if(rc != 0)
 		{
 			rc = zmq_msg_close(&msg);
-			log.trace("error in zmq_recv: %s", zmq_error2string(zmq_errno()));
+			log.trace("error in reciev:zmq_recv: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 			return null;
 		} else
 		{
@@ -159,7 +159,7 @@ class zmq_point_to_poin_client: mq_client
 		rc = zmq_msg_close(&msg);
 		if(rc != 0)
 		{
-			log.trace("error in zmq_msg_close: %s", zmq_error2string(zmq_errno()));
+			log.trace("error in reciev:zmq_msg_close: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 			return null;
 		}
 
@@ -180,14 +180,14 @@ class zmq_point_to_poin_client: mq_client
 					rc = zmq_msg_init_size(&msg, 1);
 					if(rc != 0)
 					{
-						log.trace("error in #1 zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
+						log.trace("error in #1 listener:zmq_msg_init_size: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 						break;
 					}
 
 					rc = zmq_send(soc_rep, &msg, 0);
 					if(rc != 0)
 					{
-						log.trace("error in #1 zmq_msg_send: %s", zmq_error2string(zmq_errno()));
+						log.trace("error in #1 listener:zmq_msg_send: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 						zmq_msg_close(&msg);
 						break;
 					}
@@ -195,7 +195,7 @@ class zmq_point_to_poin_client: mq_client
 					rc = zmq_msg_close(&msg);
 					if(rc != 0)
 					{
-						log.trace("error in #1 zmq_msg_close: %s", zmq_error2string(zmq_errno()));
+						log.trace("error in #1 listener:zmq_msg_close: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 						zmq_msg_close(&msg);
 						break;
 					}
@@ -204,7 +204,7 @@ class zmq_point_to_poin_client: mq_client
 				rc = zmq_msg_init(&msg);
 				if(rc != 0)
 				{
-					log.trace("error in zmq_msg_init_size: %s", zmq_error2string(zmq_errno()));
+					log.trace("error in listener:zmq_msg_init_size: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 					zmq_msg_close(&msg);
 					break;
 				}
@@ -212,7 +212,17 @@ class zmq_point_to_poin_client: mq_client
 				rc = zmq_recv(soc_rep, &msg, 0);
 				if(rc != 0)
 				{
-					log.trace("error in zmq_recv: %s", zmq_error2string(zmq_errno()));
+					int errcode = zmq_errno ();					
+					log.trace("error in listener:zmq_recv: soc[%X] (errcode:%d) %s", soc_rep, errcode, zmq_error2string(errcode));
+					
+					if (errcode == 156384763)
+					{
+					  // Operation cannot be accomplished in current state					  
+					  // push empty msg
+					  log.trace("listener:push empty msg soc[%X]", soc_rep);
+					  zmq_send(soc_rep, &msg, 0);					  
+					}
+					
 					zmq_msg_close(&msg);
 					break;
 				} else
@@ -233,14 +243,14 @@ class zmq_point_to_poin_client: mq_client
 						send(soc_rep, cast(char*) outbuff, outbuff.length, false);
 					} catch(Exception ex)
 					{
-						log.trace("ex! user function callback, %s", ex.msg);
+						log.trace("ex! listener:user function callback, %s", ex.msg);
 					}
 				}
 
 				rc = zmq_msg_close(&msg);
 				if(rc != 0)
 				{
-					log.trace("error in zmq_msg_close: %s", zmq_error2string(zmq_errno()));
+					log.trace("error in  listener:zmq_msg_close: (errcode:%d) %s", zmq_errno(), zmq_error2string(zmq_errno()));
 				}
 			}
 		}
