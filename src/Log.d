@@ -41,7 +41,7 @@ public class Logger
 		int tt = time(null);
 		tm* ptm = localtime(&tt);
 		int year = ptm.tm_year + 1900;
-		int month = ptm.tm_mon;
+		int month = ptm.tm_mon + 1;
 		int day = ptm.tm_mday;
 		int hour = ptm.tm_hour;
 		int minute = ptm.tm_min;
@@ -74,7 +74,7 @@ public class Logger
 		int tt = time(null);
 		tm* ptm = localtime(&tt);
 		int year = ptm.tm_year + 1900;
-		int month = ptm.tm_mon;
+		int month = ptm.tm_mon + 1;
 		int day = ptm.tm_mday;
 		int hour = ptm.tm_hour;
 		int minute = ptm.tm_min;
@@ -109,7 +109,7 @@ public class Logger
 		int tt = time(null);
 		tm* ptm = localtime(&tt);
 		int year = ptm.tm_year + 1900;
-		int month = ptm.tm_mon;
+		int month = ptm.tm_mon + 1;
 		int day = ptm.tm_mday;
 		int hour = ptm.tm_hour;
 		int minute = ptm.tm_min;
