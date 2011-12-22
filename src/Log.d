@@ -1,101 +1,171 @@
-/**
- License:                GNU General Public License version 3 (see license.txt, also available online at http://www.gnu.org/licenses/gpl-3.0.html)
- Authors:                OrbitalLab (http://www.orbitallab.ru/dee0xd/), 2008
-
- File:                   log.d
- Description:    some logging stuff
- Date:                   09.12.2008 by Digited
- **/
 module Log;
 
-private import tango.util.log.Log;
+private import std.format;
+private import std.c.stdio;
+private import std.date;
 
-private import tango.time.Clock;
-private import tango.time.WallClock;
-private import tango.util.log.AppendFile;
-private import tango.util.log.AppendConsole;
-private import tango.text.convert.Layout;
+import std.array: appender;
 
-package
+private import std.stdio;
+private import std.datetime;
+import std.c.linux.linux;
+
+byte trace_msg[1100];
+
+version (X86_64)
 {
-	Logger log;
-	Layout!(char) _layout;
+    alias long _time;
+}
+else
+{
+    alias int _time;
 }
 
-private
+
+public class Logger
 {
-	AppendFile _logFile;
+	private int count = 0;
+	private int prev_time = 0; 
+	private string trace_logfilename = "app";
+	private string ext = "log";
+	
+	private FILE* ff = null;
+	private string src = "";
 
-	static this()
-	{
-		_layout = new Layout!(char);
-
-		//-------------------- log -------------------------------------------------
-
-		// all loggers, as children of root, print also to console by default
-		//                Log.root.add( new AppendConsole( new VerySimpleLayout ) );
-
-		// trace is the lowest level, so all levels are logged
-		Log.root.level(Logger.Level.Trace);
-
-		log = Log.getLogger("trace");
-
-		_logFile = new AppendFile("rabbitmq-client.log", new VerySimpleLayout);
-		log.add(_logFile);
+	this(string log_name, string _ext, string _src)
+	{		
+		trace_logfilename = log_name;
+		src = _src;
+		ext = _ext;
+		open_new_file ();
 	}
 
-	static ~this()
+	~this()
 	{
-		_logFile.close;
-		delete log;
+		fclose(ff);
 	}
 
-	class VerySimpleLayout: Appender.Layout
+	private void open_new_file ()
 	{
-		private:
-			bool localTime;
+		count = 0;
+		_time tt = time(null);
+		tm* ptm = localtime(&tt);
+		int year = ptm.tm_year + 1900;
+		int month = ptm.tm_mon + 1;
+		int day = ptm.tm_mday;
+		int hour = ptm.tm_hour;
+		int minute = ptm.tm_min;
+		int second = ptm.tm_sec;
 
-			char[] convert(char[] tmp, long i)
-			{
-				return Integer.formatter(tmp, i, 'u', '?', 8);
-			}
+		auto writer = appender!string();
 
-		public:
-			this(bool localTime = true)
-			{
-				this.localTime = localTime;
-			}
+		formattedWrite(writer, "%s_%04d-%02d-%02d_%02d:%02d:%02d.%s", trace_logfilename, year, month, day, hour, minute, second, ext);
 
-			void format(LogEvent event, size_t delegate(void[]) dg)
-			{
-				char[] level = event.levelName;
+		writer.put(cast(char) 0);
+		
+		if (ff !is null)
+		{
+			fflush(ff);
+			fclose(ff);
+		}
+		
+		ff = fopen(writer.data.ptr, "aw");
+	}
+	
+	void trace_io(bool io, byte* data, ulong len)
+	{		
+		string str_io;
 
-				char[13] tmp = void;
-				char[256] tmp2 = void;
+		if(io == true)
+			str_io = "INPUT";
+		else
+			str_io = "OUTPUT";
+			
+		_time tt = time(null);
+		tm* ptm = localtime(&tt);
+		int year = ptm.tm_year + 1900;
+		int month = ptm.tm_mon + 1;
+		int day = ptm.tm_mday;
+		int hour = ptm.tm_hour;
+		int minute = ptm.tm_min;
+		int second = ptm.tm_sec;
+		d_time now = getUTCtime();
+		int milliseconds = msFromTime(now);
 
-				// convert time to field values
-				auto tm = event.time;
-				auto dt = (localTime) ? WallClock.toDate(tm) : Clock.toDate(tm);
+		count ++;
 
-				dg(_layout("{}.{} {}:{}:{},{} ---> {}", convert(tmp[0 .. 2], dt.date.month), convert(tmp[2 .. 4], dt.date.day), convert(tmp[4 .. 6],
-						dt.time.hours), convert(tmp[6 .. 8], dt.time.minutes), convert(tmp[8 .. 10], dt.time.seconds), convert(tmp[10 .. 13],
-						dt.time.millis), event.toString));
-			}
+		if (prev_time > 0 && day != prev_time || count > 1_000_000)
+		{
+			open_new_file ();
+		}
+		
+		auto writer = appender!string();
 
-			void format(LogEvent event, void delegate(void[]) dg)
-			{
-				char[] level = event.levelName;
+		formattedWrite(writer, "[%04d-%02d-%02d %02d:%02d:%02d.%03d]\n%s\n", year, month, day, hour, minute, second, milliseconds, str_io);
 
-				char[13] tmp = void;
-				char[256] tmp2 = void;
+		fwrite (cast(char*)writer.data , 1 , writer.data.length , ff);
+		
+		version (X86_64)
+		{
+		    fwrite (data , 1 , len - 1, ff);
+		}
+		else
+		{
+		    fwrite (data , 1 , cast(uint)len - 1, ff);
+		}
 
-				// convert time to field values
-				auto tm = event.time;
-				auto dt = (localTime) ? WallClock.toDate(tm) : Clock.toDate(tm);
+		fputc('\r', ff);
+		
+		fflush(ff);
+		
+		prev_time = day;		
+	}
 
-				dg(_layout("{}.{} {}:{}:{},{} ---> {}", convert(tmp[0 .. 2], dt.date.month), convert(tmp[2 .. 4], dt.date.day), convert(tmp[4 .. 6],
-						dt.time.hours), convert(tmp[6 .. 8], dt.time.minutes), convert(tmp[8 .. 10], dt.time.seconds), convert(tmp[10 .. 13],
-						dt.time.millis), event.toString));
-			}
+	string trace(Char, A...)(in Char[] fmt, A args)
+	{
+		_time tt = time(null);
+		tm* ptm = localtime(&tt);
+		int year = ptm.tm_year + 1900;
+		int month = ptm.tm_mon + 1;
+		int day = ptm.tm_mday;
+		int hour = ptm.tm_hour;
+		int minute = ptm.tm_min;
+		int second = ptm.tm_sec;
+		d_time now = getUTCtime();
+		int milliseconds = msFromTime(now);
+
+		count++;
+		if (prev_time > 0 && day != prev_time || count > 1_000_000)
+		{
+			open_new_file ();
+		}
+		
+		//	       StopWatch sw1; sw1.start();
+		auto writer = appender!string();
+
+		if (src.length > 0)
+		    formattedWrite(writer, "[%04d-%02d-%02d %02d:%02d:%02d.%03d] [%s] ", year, month, day, hour, minute, second, milliseconds, src);
+		else
+		    formattedWrite(writer, "[%04d-%02d-%02d %02d:%02d:%02d.%03d] ", year, month, day, hour, minute, second, milliseconds);
+
+		formattedWrite(writer, fmt, args);
+		writer.put(cast(char) 0);
+
+		fputs(cast(char*) writer.data, ff);
+		fputc('\n', ff);
+
+		//    		sw1.stop();
+		//               writeln (cast(long) sw1.peek().microseconds);
+
+		fflush(ff);
+
+		prev_time = day;		
+
+		return writer.data;
+	}
+
+	void trace_log_and_console(Char, A...)(in Char[] fmt, A args)
+	{
+		write(trace(fmt, args), "\n");
 	}
 }

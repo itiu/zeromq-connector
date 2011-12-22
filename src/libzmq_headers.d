@@ -19,6 +19,8 @@
 
 module libzmq_headers;
 
+private import std.c.string;
+
 /******************************************************************************/
 /*  0MQ versioning support.                                                   */
 /******************************************************************************/
@@ -95,7 +97,8 @@ ZMQ_VSM = 32,
 /*  (it has no equivalent in the wire format), however, making  it a flag     */
 /*  allows us to pack the stucture tigher and thus improve performance.       */
 ZMQ_MSG_MORE = 1,
-ZMQ_MSG_SHARED = 128
+ZMQ_MSG_SHARED = 128,
+ZMQ_MSG_MASK = 129
 }
 /*  A message. Note that 'content' is not a pointer to the raw data.          */
 /*  Rather it is pointer to zmq::msg_content_t structure                      */
@@ -137,11 +140,15 @@ enum soc_type
  ZMQ_SUB = 2,
  ZMQ_REQ = 3,
  ZMQ_REP = 4,
- ZMQ_XREQ = 5,
- ZMQ_XREP = 6,
+ ZMQ_DEALER = 5,
+ ZMQ_ROUTER = 6,
  ZMQ_PULL = 7,
  ZMQ_PUSH = 8,
- ZMQ_UPSTREAM = ZMQ_PULL,      /*  Old alias, remove in 3.x               */
+ ZMQ_XPUB = 9,
+ ZMQ_XSUB = 10,
+ ZMQ_XREQ = ZMQ_DEALER        /*  Old alias, remove in 3.x               */,
+ ZMQ_XREP = ZMQ_ROUTER        /*  Old alias, remove in 3.x               */,
+ ZMQ_UPSTREAM = ZMQ_PULL      /*  Old alias, remove in 3.x               */,
  ZMQ_DOWNSTREAM = ZMQ_PUSH    /*  Old alias, remove in 3.x               */
 }
 
@@ -165,7 +172,9 @@ enum soc_opt
  ZMQ_TYPE = 16,
  ZMQ_LINGER = 17,
  ZMQ_RECONNECT_IVL = 18,
- ZMQ_BACKLOG = 19
+ ZMQ_BACKLOG = 19,
+ ZMQ_RECOVERY_IVL_MSEC = 20   /*  opt. recovery time, reconcile in 3.x   */,
+ ZMQ_RECONNECT_IVL_MAX = 21
 }
 
 /*  Send/recv options.                                                        */
@@ -224,3 +233,9 @@ enum devices
 }
 
 extern (C) int zmq_device (int device, void * insocket, void* outsocket);
+
+public string zmq_error2string (int errnum)
+{
+    char* err_text = zmq_strerror (errnum);
+    return cast (string) err_text[0..strlen (err_text)];
+}
