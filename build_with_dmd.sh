@@ -1,5 +1,4 @@
 DMD=dmd
-#~/dmd2-055/linux/bin32/dmd
 
 date
 rm *.a

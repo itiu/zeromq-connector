@@ -2,7 +2,7 @@ module Log;
 
 private import std.format;
 private import std.c.stdio;
-private import std.date;
+private import std.datetime;
 
 import std.array: appender;
 
@@ -89,9 +89,9 @@ public class Logger
 		int hour = ptm.tm_hour;
 		int minute = ptm.tm_min;
 		int second = ptm.tm_sec;
-		d_time now = getUTCtime();
-		int milliseconds = msFromTime(now);
-
+		auto now = Clock.currTime();
+		auto milliseconds = now.fracSec;
+		
 		count ++;
 
 		if (prev_time > 0 && day != prev_time || count > 1_000_000)
@@ -131,8 +131,8 @@ public class Logger
 		int hour = ptm.tm_hour;
 		int minute = ptm.tm_min;
 		int second = ptm.tm_sec;
-		d_time now = getUTCtime();
-		int milliseconds = msFromTime(now);
+		auto now = Clock.currTime();
+		auto milliseconds = now.fracSec;
 
 		count++;
 		if (prev_time > 0 && day != prev_time || count > 1_000_000)
