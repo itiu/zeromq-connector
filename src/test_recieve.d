@@ -25,8 +25,8 @@ void main(char[][] args)
 
 	log.trace("start new Thread %p", &thread);
 	thread.start();
-        while(true)
-            Thread.getThis().sleep(100_000_000);
+//        while(true)
+//            Thread.getThis().sleep(100_000_000);
 }
 
 int count = 0;

@@ -5,11 +5,6 @@ private import std.stdio;
 private import core.stdc.stdlib;
 private import core.thread;
 
-private import tango.util.uuid.NamespaceGenV5;
-private import tango.util.digest.Sha1;
-private import tango.util.uuid.RandomGen;
-private import tango.math.random.Twister;
-
 private import std.datetime;
 
 private import libzmq_headers;
@@ -22,6 +17,8 @@ private import mq_client;
 private import std.outbuffer;
 
 private import core.stdc.stdio;
+import std.uuid;
+
 alias void listener_result;
 
 static int PPP_HEARTBEAT_LIVENESS = 5; //  		3-5 is reasonable
@@ -211,7 +208,7 @@ class zmq_pp_broker_client: mq_client
 				{
 					printf("W: heartbeat failure, can't reach queue\n");
 					printf("W: reconnecting in %zd msec...\n", interval);
-					Thread.getThis().sleep(interval * 10_000);
+					Thread.sleep(dur!("msecs")(interval));
 
 					if(interval < PPP_INTERVAL_MAX)
 					{
@@ -247,15 +244,16 @@ class zmq_pp_broker_client: mq_client
 	//	 Set simple random printable identity on socket	
 	private static char[] s_set_id(void* socket)
 	{
-		Twister rnd;
-		rnd.seed;
-		UuidGen rndUuid = new RandomGen!(Twister)(rnd);
-		Uuid generated = rndUuid.next;
-		char[] id = generated.toString;
+		UUID uid = randomUUID();
+//		Twister rnd;
+//		rnd.seed;
+//		UuidGen rndUuid = new RandomGen!(Twister)(rnd);
+//		Uuid generated = rndUuid.next;
+		string id = uid.toString();
 
-		zmq_setsockopt(socket, soc_opt.ZMQ_IDENTITY, id.ptr, id.length);
+		zmq_setsockopt(socket, soc_opt.ZMQ_IDENTITY, cast(char*)id, cast(int)id.length);
 
-		return id;
+		return cast(char[])id;
 	}
 
 	private void* s_worker_socket(zctx_t* ctx, char* point)
