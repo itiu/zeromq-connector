@@ -7,14 +7,14 @@ git log -1 --pretty=format:"module myversion; public static char[] author=cast(c
 
 #~/dmd/linux/bin/dmd -version=D1 myversion.d src/Log.d src/zmq_pp_broker_client.d src/zmq_point_to_poin_client.d src/libzmq_headers.d src/mq_client.d lib/libzmq.a lib/libstdc++.a lib/libuuid.a -oflibzmq-D1.a -lib
 
-$DMD -version=D2 myversion.d src/Log.d src/dzmq.d src/zmq_pp_broker_client.d src/zmq_point_to_poin_client.d src/libzmq_headers.d src/mq_client.d \
-lib/libzmq.a lib/libstdc++.a lib/libuuid.a -oflibzmq-D2.a -lib
+$DMD -version=D2 -m64 myversion.d src/Log.d src/dzmq.d src/zmq_pp_broker_client.d src/zmq_point_to_poin_client.d src/libzmq_headers.d src/mq_client.d \
+lib/libzmq.a lib/libstdc++.a lib/libuuid.a -oflib-zeromq-connector-D2.a -lib
 
-$DMD -version=D2 src/test_recieve.d src/Log.d src/zmq_point_to_poin_client.d src/libzmq_headers.d src/mq_client.d \
-lib/libzmq.a lib/libstdc++.a lib/libuuid.a 
+#$DMD -version=D2 src/test_recieve.d src/Log.d src/zmq_point_to_poin_client.d src/libzmq_headers.d src/mq_client.d \
+#lib/libzmq.a lib/libstdc++.a lib/libuuid.a 
 
-$DMD -version=D2 src/test_send.d src/Log.d src/zmq_point_to_poin_client.d src/libzmq_headers.d src/mq_client.d \
-lib/libzmq.a lib/libstdc++.a lib/libuuid.a 
+#$DMD -version=D2 src/test_send.d src/Log.d src/zmq_point_to_poin_client.d src/libzmq_headers.d src/mq_client.d \
+#lib/libzmq.a lib/libstdc++.a lib/libuuid.a 
 
 rm *.o
 date

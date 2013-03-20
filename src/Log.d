@@ -37,7 +37,7 @@ public class Logger
 		trace_logfilename = log_name;
 		src = _src;
 		ext = _ext;
-		open_new_file ();
+//		open_new_file ();
 	}
 
 	~this()
@@ -94,7 +94,7 @@ public class Logger
 		
 		count ++;
 
-		if (prev_time > 0 && day != prev_time || count > 1_000_000)
+		if (ff is null || prev_time > 0 && day != prev_time || count > 1_000_000)
 		{
 			open_new_file ();
 		}
@@ -135,7 +135,7 @@ public class Logger
 		auto milliseconds = now.fracSec;
 
 		count++;
-		if (prev_time > 0 && day != prev_time || count > 1_000_000)
+		if (ff is null || prev_time > 0 && day != prev_time || count > 1_000_000)
 		{
 			open_new_file ();
 		}
